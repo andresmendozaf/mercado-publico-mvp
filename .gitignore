@@ -1,0 +1,29 @@
+# Maven - Archivos de compilación y empaquetado
+target/
+pom.xml.tag
+pom.xml.releaseBackup
+pom.xml.next
+release.properties
+dependency-reduced-pom.xml
+buildNumber.properties
+.mvn/timing.properties
+.mvn/wrapper/.maven-wrapper.jar
+
+# IDE - Visual Studio Code
+.vscode/
+*.code-workspace
+.history/
+
+# Sistema Operativo y Temporales
+.DS_Store
+Thumbs.db
+crash.log
+*.tmp
+
+# Logs de la aplicación
+/logs
+*.log
+
+# Seguridad y Credenciales (¡Crucial para el paso 2!)
+.env
+*.local
