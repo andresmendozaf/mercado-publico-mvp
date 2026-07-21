@@ -14,10 +14,19 @@ import com.mercadopublico.mvp.service.LicitacionService;
 @RequestMapping("/api/licitaciones")
 public class LicitacionController {
 
-private final LicitacionService licitacionService;
+    private final LicitacionService licitacionService;
 
     public LicitacionController(LicitacionService licitacionService) {
         this.licitacionService = licitacionService;
+    }
+
+    /**
+     * Endpoint para sincronizar automáticamente las licitaciones del día desde Mercado Público.
+     */
+    @PostMapping("/sincronizar")
+    public ResponseEntity<List<Licitacion>> sincronizar() {
+        List<Licitacion> sincronizadas = licitacionService.sincronizarLicitacionesDelDia();
+        return ResponseEntity.ok(sincronizadas);
     }
 
     /**
