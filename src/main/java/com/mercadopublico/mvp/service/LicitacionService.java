@@ -5,7 +5,6 @@ import java.time.LocalDate;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
-import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -30,18 +29,10 @@ public class LicitacionService {
     private final LicitacionRepository licitacionRepository;
     private final RestTemplate restTemplate;
 
-    // Inyecta el ticket desde tu application.properties
     @Value("${mercadopublico.api.ticket}")
     private String apiTicket;
 
     // --- MÉTODOS LOCALES ---
-
-    public Licitacion guardarLicitacionDirecta(Licitacion licitacion) {
-        if (licitacion.getEstado() == null) {
-            licitacion.setEstado(EstadoLicitacion.PUBLICADA);
-        }
-        return licitacionRepository.save(licitacion);
-    }
 
     public List<Licitacion> obtenerLicitacionesAbiertas() {
         return licitacionRepository.findByEstado(EstadoLicitacion.PUBLICADA);
@@ -68,25 +59,26 @@ public class LicitacionService {
 
         if (response != null && response.listado() != null) {
             for (LicitacionApiDTO dto : response.listado()) {
-                
-                // 1. Identificación y Fallbacks
+
                 String codigo = (dto.codigoExterno() != null) ? dto.codigoExterno() : "SIN-CODIGO";
                 String nombre = (dto.nombre() != null) ? dto.nombre() : "Licitación sin nombre provisto";
 
-                // 2. Buscar si ya existe en PostgreSQL por su código externo único
+                // Buscar si ya existe para actualizar (UPSERT), o instanciar una nueva
                 Licitacion licitacion = licitacionRepository.findByCodigoExterno(codigo)
-                                        .orElseGet(Licitacion::new); // Si existe la actualiza, si no, crea una nueva
+                                        .orElseGet(Licitacion::new);
 
-                // 3. Mapeo/Actualización de campos
+                // Mapeo atómico de campos reales
                 licitacion.setCodigoExterno(codigo);
-                licitacion.setNombre(nombre);
-                licitacion.setTitulo("[" + codigo + "] " + nombre);
+                licitacion.setNombre(nombre); // <- El nombre oficial devuelto por Mercado Público
+                
+                // Si tu DTO no trae descripción en la lista del día, no es necesario setearlo (o se setea null)
+                if (dto.descripcion() != null) {
+                    licitacion.setDescripcion(dto.descripcion());
+                }
+
                 licitacion.setEstado(EstadoLicitacion.desdeCodigoApi(dto.codigoEstado()));
-                licitacion.setDescripcion(nombre);
-                licitacion.setPresupuestoEstimado(0.0);
                 licitacion.setFechaCierre(parsearFechaCierre(dto.fechaCierre()));
 
-                // 4. Guardar (JPA detectará si es INSERT o UPDATE de forma automática)
                 guardadas.add(licitacionRepository.save(licitacion));
             }
         }
@@ -94,21 +86,16 @@ public class LicitacionService {
         return guardadas;
     }
 
-    /**
-     * Intenta parsear la fecha enviada por la API. 
-     * En caso de venir nula, vacía o con un formato no reconocido,
-     * aplica un fallback automático asignando 30 días a partir de hoy.
-     */
     private Instant parsearFechaCierre(String fechaStr) {
         if (fechaStr != null && !fechaStr.isBlank()) {
             try {
                 return java.time.LocalDateTime.parse(fechaStr)
                         .toInstant(java.time.ZoneOffset.UTC);
             } catch (DateTimeParseException e) {
-                log.warn("No se pudo parsear la fecha de cierre '{}'. Asignando fecha por defecto (+30 días). Error: {}", 
-                         fechaStr, e.getMessage());
+                log.warn("No se pudo parsear la fecha de cierre '{}'. Dejando campo como null. Error: {}", 
+                        fechaStr, e.getMessage());
             }
         }
-        return Instant.now().plus(30, ChronoUnit.DAYS);
+        return null; 
     }
 }

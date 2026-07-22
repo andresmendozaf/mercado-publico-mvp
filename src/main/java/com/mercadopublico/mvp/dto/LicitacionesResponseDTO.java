@@ -13,6 +13,7 @@ public record LicitacionesResponseDTO(
         @JsonProperty("CodigoExterno") String codigoExterno,
         @JsonProperty("Nombre") String nombre,
         @JsonProperty("CodigoEstado") Integer codigoEstado,
-        @JsonProperty("FechaCierre") String fechaCierre
+        @JsonProperty("FechaCierre") String fechaCierre,
+        @JsonProperty("Descripcion") String descripcion
     ) {}
 }

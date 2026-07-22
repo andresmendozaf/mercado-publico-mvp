@@ -22,19 +22,17 @@ public class Licitacion {
     @Column(columnDefinition = "TEXT")
     private String nombre;
 
-    @Column(columnDefinition = "TEXT")
-    private String titulo; // Si deseas mantenerlo, o puedes calcularlo dinámicamente
-
     @Column(columnDefinition = "TEXT", nullable = false)
     private String descripcion;
 
-    @Column(nullable = false)
+    @Column
     private Double presupuestoEstimado;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private EstadoLicitacion estado; 
 
+    @Column(name = "fecha_cierre")
     private Instant fechaCierre;
 
     @Column(name = "organismo_comprador")
@@ -42,4 +40,5 @@ public class Licitacion {
 
     @Column(name = "rut_comprador")
     private String rutComprador;
+   
 }

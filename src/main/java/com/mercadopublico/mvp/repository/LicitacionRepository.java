@@ -10,8 +10,6 @@ import com.mercadopublico.mvp.model.Licitacion;
 
 public interface LicitacionRepository extends JpaRepository<Licitacion, Long>{
  
-    // Busca todas las licitaciones que tengan un estado en específico (ej: "ABIERTA")
-    List<Licitacion> findByEstado(String estado);
     List<Licitacion> findByEstado(EstadoLicitacion estado);
     Optional<Licitacion> findByCodigoExterno(String codigoExterno);
 }

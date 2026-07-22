@@ -37,11 +37,8 @@ public class SincronizacionService {
             
             // 1. Mapeo de Identificación
             String codigo = (ext.codigoExterno() != null) ? ext.codigoExterno() : "SIN-CODIGO";
-            String nombre = (ext.nombre() != null) ? ext.nombre() : "Licitación sin nombre provisto";
             
             local.setCodigoExterno(codigo);
-            local.setNombre(nombre);
-            local.setTitulo("[" + codigo + "] " + nombre);
             
             // 2. Mapeo de Negocio
             local.setDescripcion("Licitación importada mediante sincronización masiva diaria. Detalle pendiente.");
