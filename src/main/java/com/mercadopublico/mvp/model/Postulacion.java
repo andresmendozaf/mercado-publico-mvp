@@ -39,7 +39,7 @@ public class Postulacion {
     private EstadoPostulacion estado;
 
     @Column(nullable = false, updatable = false)
-    private Instant fechaPresentacion;
+    private Instant fechaPostulacion;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "licitacion_id", nullable = false)
@@ -51,7 +51,7 @@ public class Postulacion {
 
     @PrePersist
     protected void onCreate() {
-        this.fechaPresentacion = Instant.now();
+        this.fechaPostulacion = Instant.now();
         if (this.estado == null) {
             this.estado = EstadoPostulacion.POR_ESTUDIAR; // Estado inicial por defecto
         }

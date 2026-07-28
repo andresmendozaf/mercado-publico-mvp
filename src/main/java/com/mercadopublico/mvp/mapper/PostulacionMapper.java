@@ -19,6 +19,7 @@ public class PostulacionMapper {
         postulacion.setMontoPostulacion(dto.montoPostulacion());
         postulacion.setPropuestaTecnica(dto.propuestaTecnica());
         postulacion.setEstado(dto.estado() != null ? dto.estado() : EstadoPostulacion.POR_ESTUDIAR);
+        postulacion.setFechaPostulacion(java.time.Instant.now()); // 💡 Fecha de auditoría
         postulacion.setLicitacion(licitacion);
         postulacion.setProveedor(proveedor);
         return postulacion;
