@@ -17,6 +17,7 @@ import java.util.List;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @WebMvcTest(LicitacionController.class)
@@ -46,6 +47,7 @@ class LicitacionControllerTest {
 
         mockMvc.perform(get("/api/licitaciones")
                 .contentType(MediaType.APPLICATION_JSON))
+                .andDo(print())
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[0].codigoExterno").value("1234-56-78"))
                 .andExpect(jsonPath("$[0].nombre").value("Adquisición de Servidores de Prueba"));

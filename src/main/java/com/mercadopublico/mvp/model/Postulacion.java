@@ -3,11 +3,23 @@ package com.mercadopublico.mvp.model;
 import java.time.Instant;
 
 import jakarta.persistence.*;
-import lombok.*;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 @Entity
-@Table(name = "postulacion")
-@Data
+@Table(
+    name = "postulacion",
+    uniqueConstraints = {
+        @UniqueConstraint(
+            name = "uk_postulacion_proveedor_licitacion", 
+            columnNames = {"proveedor_id", "licitacion_id"}
+        )
+    }
+)
+@Getter
+@Setter
 @NoArgsConstructor
 @AllArgsConstructor
 public class Postulacion {
@@ -22,19 +34,26 @@ public class Postulacion {
     @Column(columnDefinition = "TEXT", nullable = false)
     private String propuestaTecnica;
 
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private EstadoPostulacion estado;
+
+    @Column(nullable = false, updatable = false)
     private Instant fechaPresentacion;
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "licitacion_id", nullable = false)
-    private Licitacion licitacion; // A qué licitación se postula
+    private Licitacion licitacion;
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "proveedor_id", nullable = false)
-    private Usuario proveedor; // Qué empresa/proveedor realiza la oferta
+    private Usuario proveedor;
 
     @PrePersist
     protected void onCreate() {
         this.fechaPresentacion = Instant.now();
+        if (this.estado == null) {
+            this.estado = EstadoPostulacion.POR_ESTUDIAR; // Estado inicial por defecto
+        }
     }
-
 }
