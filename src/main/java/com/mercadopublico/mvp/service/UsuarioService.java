@@ -1,11 +1,11 @@
 package com.mercadopublico.mvp.service;
 
 import java.util.List;
-import java.util.Optional;
 
 import org.springframework.stereotype.Service;
 
 import com.mercadopublico.mvp.exception.RecursoDuplicadoException;
+import com.mercadopublico.mvp.exception.RecursoNoEncontradoException;
 import com.mercadopublico.mvp.model.Usuario;
 import com.mercadopublico.mvp.repository.UsuarioRepository;
 
@@ -14,13 +14,11 @@ public class UsuarioService {
 
     private final UsuarioRepository usuarioRepository;
 
-    // Inyección de dependencias por constructor (Práctica recomendada en lugar de @Autowired)
     public UsuarioService(UsuarioRepository usuarioRepository) {
         this.usuarioRepository = usuarioRepository;
     }
 
     public Usuario registrarUsuario(Usuario usuario) {
-
         // Regla de negocio: Validar que no exista el RUN/ID
         if (usuarioRepository.findByRunOId(usuario.getRunOId()).isPresent()) {
             throw new RecursoDuplicadoException("El RUN/ID fiscal ya está registrado.");
@@ -36,8 +34,8 @@ public class UsuarioService {
         return usuarioRepository.findAll();
     }
 
-    public Optional<Usuario> obtenerPorId(Long id) {
-        return usuarioRepository.findById(id);
+    public Usuario obtenerPorId(Long id) {
+        return usuarioRepository.findById(id)
+                .orElseThrow(() -> new RecursoNoEncontradoException("Usuario no encontrado con el ID: " + id));
     }
-
 }
