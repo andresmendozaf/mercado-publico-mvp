@@ -4,7 +4,7 @@ import java.util.List;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import com.mercadopublico.mvp.model.Licitacion;
+import com.mercadopublico.mvp.dto.LicitacionResponseDTO;
 import com.mercadopublico.mvp.service.LicitacionService;
 
 @RestController
@@ -18,17 +18,17 @@ public class LicitacionController {
     }
 
     @PostMapping("/sincronizar")
-    public ResponseEntity<List<Licitacion>> sincronizar() {
+    public ResponseEntity<List<LicitacionResponseDTO>> sincronizar() {
         return ResponseEntity.ok(licitacionService.sincronizarLicitacionesDelDia());
     }
 
     @GetMapping
-    public ResponseEntity<List<Licitacion>> obtenerTodas() {
+    public ResponseEntity<List<LicitacionResponseDTO>> obtenerTodas() {
         return ResponseEntity.ok(licitacionService.obtenerTodas());
     }
 
     @GetMapping("/abiertas")
-    public ResponseEntity<List<Licitacion>> obtenerAbiertas() {
+    public ResponseEntity<List<LicitacionResponseDTO>> obtenerAbiertas() {
         return ResponseEntity.ok(licitacionService.obtenerLicitacionesAbiertas());
     }
 }

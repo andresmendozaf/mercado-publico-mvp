@@ -4,98 +4,170 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
-import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
-import org.springframework.web.client.RestTemplate;
+import org.springframework.transaction.annotation.Transactional;
 
-import com.mercadopublico.mvp.dto.LicitacionesResponseDTO;
-import com.mercadopublico.mvp.dto.LicitacionesResponseDTO.LicitacionApiDTO;
+import com.mercadopublico.mvp.client.ChileCompraClient;
+import com.mercadopublico.mvp.dto.LicitacionResponseDTO;
+import com.mercadopublico.mvp.dto.MercadoPublicoLicitacionDTO;
+import com.mercadopublico.mvp.mapper.LicitacionMapper;
+import com.mercadopublico.mvp.mapper.LicitacionSyncMapper;
 import com.mercadopublico.mvp.model.EstadoLicitacion;
 import com.mercadopublico.mvp.model.Licitacion;
+import com.mercadopublico.mvp.model.LicitacionCambioCampo;
+import com.mercadopublico.mvp.model.LicitacionSincronizacionLog;
+import com.mercadopublico.mvp.model.TipoOperacionSync;
 import com.mercadopublico.mvp.repository.LicitacionRepository;
+import com.mercadopublico.mvp.repository.LicitacionSincronizacionLogRepository;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
-@Service
 @RequiredArgsConstructor
+@Service
 public class LicitacionService {
 
     private final LicitacionRepository licitacionRepository;
-    private final RestTemplate restTemplate;
+    private final ChileCompraClient chileCompraClient;
+    private final LicitacionMapper licitacionMapper;
+    private final LicitacionSyncMapper licitacionSyncMapper;
+    private final LicitacionSincronizacionLogRepository licitacionSincronizacionLogRepository;
 
-    @Value("${mercadopublico.api.ticket}")
-    private String apiTicket;
-
-    // --- MÉTODOS LOCALES ---
-
-    public List<Licitacion> obtenerLicitacionesAbiertas() {
-        return licitacionRepository.findByEstado(EstadoLicitacion.PUBLICADA);
+    public List<LicitacionResponseDTO> obtenerLicitacionesAbiertas() {
+        return licitacionMapper.toResponseDTOList(
+                licitacionRepository.findByEstado(EstadoLicitacion.PUBLICADA));
     }
 
-    public List<Licitacion> obtenerTodas() {
-        return licitacionRepository.findAll();
+    public List<LicitacionResponseDTO> obtenerTodas() {
+        return licitacionMapper.toResponseDTOList(licitacionRepository.findAll());
     }
 
-    // --- SINCRONIZACIÓN CON MERCADO PÚBLICO ---
+    // ---------------- SINCRONIZACIÓN IDEMPOTENTE ----------------
 
-    public List<Licitacion> sincronizarLicitacionesDelDia() {
-        String fechaHoy = LocalDate.now(ZoneId.of("America/Santiago"))
-                                .format(DateTimeFormatter.ofPattern("ddMMyyyy"));
+@Transactional
+public List<LicitacionResponseDTO> sincronizarLicitacionesDelDia() {
 
-        String url = String.format(
-            "https://api.mercadopublico.cl/servicios/v1/publico/licitaciones.json?fecha=%s&ticket=%s",
-            fechaHoy,
-            apiTicket
-        );
+    String fecha = LocalDate.now(ZoneId.of("America/Santiago"))
+            .format(DateTimeFormatter.ofPattern("ddMMyyyy"));
 
-        LicitacionesResponseDTO response = restTemplate.getForObject(url, LicitacionesResponseDTO.class);
-        List<Licitacion> guardadas = new ArrayList<>();
+    List<MercadoPublicoLicitacionDTO> listado = chileCompraClient.obtenerLicitacionesPorFecha(fecha);
 
-        if (response != null && response.listado() != null) {
-            for (LicitacionApiDTO dto : response.listado()) {
+    if (listado == null || listado.isEmpty()) {
+        return List.of();
+    }
 
-                String codigo = (dto.codigoExterno() != null) ? dto.codigoExterno() : "SIN-CODIGO";
-                String nombre = (dto.nombre() != null) ? dto.nombre() : "Licitación sin nombre provisto";
+    List<String> codigos = listado.stream()
+            .map(MercadoPublicoLicitacionDTO::codigoExterno)
+            .toList();
 
-                // Buscar si ya existe para actualizar (UPSERT), o instanciar una nueva
-                Licitacion licitacion = licitacionRepository.findByCodigoExterno(codigo)
-                                        .orElseGet(Licitacion::new);
+    Map<String, Licitacion> existentesPorCodigo = licitacionRepository
+            .findAllByCodigoExternoIn(codigos)
+            .stream()
+            .collect(Collectors.toMap(Licitacion::getCodigoExterno, Function.identity()));
 
-                // Mapeo atómico de campos reales
-                licitacion.setCodigoExterno(codigo);
-                licitacion.setNombre(nombre); // <- El nombre oficial devuelto por Mercado Público
-                
-                // Si tu DTO no trae descripción en la lista del día, no es necesario setearlo (o se setea null)
-                if (dto.descripcion() != null) {
-                    licitacion.setDescripcion(dto.descripcion());
-                }
+    List<Licitacion> entidades = new ArrayList<>();
+    List<LicitacionSincronizacionLog> logsAGuardar = new ArrayList<>();
+    Set<String> codigosEnEsteLote = new HashSet<>();
+    Instant ahora = Instant.now();
 
-                licitacion.setEstado(EstadoLicitacion.desdeCodigoApi(dto.codigoEstado()));
-                licitacion.setFechaCierre(parsearFechaCierre(dto.fechaCierre()));
+    for (MercadoPublicoLicitacionDTO dto : listado) {
 
-                guardadas.add(licitacionRepository.save(licitacion));
-            }
+        String codigo = dto.codigoExterno();
+        Licitacion existente = existentesPorCodigo.get(codigo);
+        boolean esNueva = existente == null;
+
+        Licitacion licitacion = esNueva ? new Licitacion() : existente;
+
+        Map<String, Object> antes = esNueva ? Map.of() : capturarCamposRelevantes(licitacion);
+
+        licitacionSyncMapper.actualizarEntidadDesdeDto(dto, licitacion);
+
+        if (esNueva) {
+            // Registramos la entidad recién creada para que una segunda aparición
+            // del mismo código en este mismo lote la reutilice en vez de crear otra.
+            existentesPorCodigo.put(codigo, licitacion);
         }
 
-        return guardadas;
+        if (codigosEnEsteLote.add(codigo)) {
+            entidades.add(licitacion);
+        }
+
+        if (esNueva) {
+            LicitacionSincronizacionLog headerLog = new LicitacionSincronizacionLog();
+            headerLog.setLicitacion(licitacion);
+            headerLog.setCodigoExterno(codigo);
+            headerLog.setTipoOperacion(TipoOperacionSync.CREADA);
+            headerLog.setFechaSincronizacion(ahora);
+            headerLog.setCantidadCamposCambiados(0);
+            logsAGuardar.add(headerLog);
+        } else {
+            Map<String, Object> despues = capturarCamposRelevantes(licitacion);
+            List<LicitacionCambioCampo> cambios = compararCampos(antes, despues);
+
+            if (!cambios.isEmpty()) {
+                LicitacionSincronizacionLog headerLog = new LicitacionSincronizacionLog();
+                headerLog.setLicitacion(licitacion);
+                headerLog.setCodigoExterno(codigo);
+                headerLog.setTipoOperacion(TipoOperacionSync.ACTUALIZADA);
+                headerLog.setFechaSincronizacion(ahora);
+                headerLog.setCantidadCamposCambiados(cambios.size());
+
+                cambios.forEach(c -> c.setSincronizacionLog(headerLog));
+                headerLog.setCambios(cambios);
+
+                logsAGuardar.add(headerLog);
+            }
+            // si no hubo cambios, no se persiste nada de auditoría
+        }
     }
 
-    private Instant parsearFechaCierre(String fechaStr) {
-        if (fechaStr != null && !fechaStr.isBlank()) {
-            try {
-                return java.time.LocalDateTime.parse(fechaStr)
-                        .toInstant(java.time.ZoneOffset.UTC);
-            } catch (DateTimeParseException e) {
-                log.warn("No se pudo parsear la fecha de cierre '{}'. Dejando campo como null. Error: {}", 
-                        fechaStr, e.getMessage());
-            }
+    List<Licitacion> guardadas = licitacionRepository.saveAll(entidades);
+    licitacionSincronizacionLogRepository.saveAll(logsAGuardar); // cascada guarda también los LicitacionCambioCampo
+
+    return licitacionMapper.toResponseDTOList(guardadas);
+}
+
+private Map<String, Object> capturarCamposRelevantes(Licitacion l) {
+    Map<String, Object> valores = new LinkedHashMap<>();
+    valores.put("nombre", l.getNombre());
+    valores.put("descripcion", l.getDescripcion());
+    valores.put("presupuestoEstimado", l.getPresupuestoEstimado());
+    valores.put("estado", l.getEstado());
+    valores.put("fechaCierre", l.getFechaCierre());
+    valores.put("organismoComprador", l.getOrganismoComprador());
+    valores.put("rutComprador", l.getRutComprador());
+    return valores;
+}
+
+private List<LicitacionCambioCampo> compararCampos(Map<String, Object> antes, Map<String, Object> despues) {
+    List<LicitacionCambioCampo> cambios = new ArrayList<>();
+
+    for (Map.Entry<String, Object> entry : antes.entrySet()) {
+        String campo = entry.getKey();
+        Object valorAntes = entry.getValue();
+        Object valorDespues = despues.get(campo);
+
+        if (!Objects.equals(valorAntes, valorDespues)) {
+            LicitacionCambioCampo cambio = new LicitacionCambioCampo();
+            cambio.setNombreCampo(campo);
+            cambio.setValorAnterior(valorAntes != null ? valorAntes.toString() : null);
+            cambio.setValorNuevo(valorDespues != null ? valorDespues.toString() : null);
+            cambios.add(cambio);
         }
-        return null; 
     }
+
+    return cambios;
+}
+
 }

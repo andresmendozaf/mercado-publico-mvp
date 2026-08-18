@@ -22,7 +22,7 @@ public class Licitacion {
     @Column(columnDefinition = "TEXT")
     private String nombre;
 
-    @Column(columnDefinition = "TEXT", nullable = false)
+    @Column(columnDefinition = "TEXT")
     private String descripcion;
 
     @Column
@@ -30,15 +30,33 @@ public class Licitacion {
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    private EstadoLicitacion estado; 
+    private EstadoLicitacion estado;
 
     @Column(name = "fecha_cierre")
     private Instant fechaCierre;
 
     @Column(name = "organismo_comprador")
-    private String organismoComprador; 
+    private String organismoComprador;
 
     @Column(name = "rut_comprador")
     private String rutComprador;
-   
+
+    @Column(name = "fecha_creacion", nullable = false, updatable = false)
+    private Instant fechaCreacion;
+
+    @Column(name = "fecha_actualizacion")
+    private Instant fechaActualizacion;
+
+    @PrePersist
+    public void prePersist() {
+        Instant ahora = Instant.now();
+        this.fechaCreacion = ahora;
+        this.fechaActualizacion = ahora;
+    }
+
+    @PreUpdate
+    public void preUpdate() {
+        this.fechaActualizacion = Instant.now();
+    }
+
 }

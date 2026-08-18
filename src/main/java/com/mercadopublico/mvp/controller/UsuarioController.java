@@ -7,7 +7,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import com.mercadopublico.mvp.dto.UsuarioDTO;
-import com.mercadopublico.mvp.model.Usuario;
+import com.mercadopublico.mvp.dto.UsuarioResponseDTO;
+import com.mercadopublico.mvp.mapper.UsuarioMapper;
 import com.mercadopublico.mvp.service.UsuarioService;
 
 import jakarta.validation.Valid;
@@ -17,9 +18,11 @@ import jakarta.validation.Valid;
 public class UsuarioController {
 
     private final UsuarioService usuarioService;
+    private final UsuarioMapper usuarioMapper;
 
-    public UsuarioController(UsuarioService usuarioService) {
+    public UsuarioController(UsuarioService usuarioService, UsuarioMapper usuarioMapper) {
         this.usuarioService = usuarioService;
+        this.usuarioMapper = usuarioMapper;
     }
 
     /**
@@ -27,8 +30,8 @@ public class UsuarioController {
      * Retorna HTTP Status 201 (Created).
      */
     @PostMapping
-    public ResponseEntity<Usuario> registrarUsuario(@Valid @RequestBody UsuarioDTO dto) {
-        Usuario nuevoUsuario = usuarioService.registrarUsuario(dto.toEntity());
+    public ResponseEntity<UsuarioResponseDTO> registrarUsuario(@Valid @RequestBody UsuarioDTO dto) {
+        UsuarioResponseDTO nuevoUsuario = usuarioService.registrarUsuario(usuarioMapper.toEntity(dto));
         return new ResponseEntity<>(nuevoUsuario, HttpStatus.CREATED);
     }
 
@@ -37,8 +40,8 @@ public class UsuarioController {
      * Retorna HTTP Status 200 (OK).
      */
     @GetMapping
-    public ResponseEntity<List<Usuario>> obtenerTodos() {
-        List<Usuario> usuarios = usuarioService.obtenerTodos();
+    public ResponseEntity<List<UsuarioResponseDTO>> obtenerTodos() {
+        List<UsuarioResponseDTO> usuarios = usuarioService.obtenerTodos();
         return ResponseEntity.ok(usuarios);
     }
 
@@ -47,8 +50,8 @@ public class UsuarioController {
      * Retorna HTTP Status 200 (OK).
      */
     @GetMapping("/{id}")
-    public ResponseEntity<Usuario> obtenerPorId(@PathVariable Long id) {
-        Usuario usuario = usuarioService.obtenerPorId(id);
+    public ResponseEntity<UsuarioResponseDTO> obtenerPorId(@PathVariable Long id) {
+        UsuarioResponseDTO usuario = usuarioService.obtenerPorId(id);
         return ResponseEntity.ok(usuario);
     }
 }

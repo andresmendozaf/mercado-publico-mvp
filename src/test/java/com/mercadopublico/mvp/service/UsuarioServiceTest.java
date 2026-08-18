@@ -17,8 +17,10 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import com.mercadopublico.mvp.dto.UsuarioResponseDTO;
 import com.mercadopublico.mvp.exception.RecursoDuplicadoException;
 import com.mercadopublico.mvp.exception.RecursoNoEncontradoException;
+import com.mercadopublico.mvp.mapper.UsuarioMapper;
 import com.mercadopublico.mvp.model.Usuario;
 import com.mercadopublico.mvp.repository.UsuarioRepository;
 
@@ -28,10 +30,14 @@ class UsuarioServiceTest {
     @Mock
     private UsuarioRepository usuarioRepository;
 
+    @Mock
+    private UsuarioMapper usuarioMapper;
+
     @InjectMocks
     private UsuarioService usuarioService;
 
     private Usuario usuarioPrueba;
+    private UsuarioResponseDTO usuarioResponseEsperada;
 
     @BeforeEach
     void setUp() {
@@ -42,6 +48,15 @@ class UsuarioServiceTest {
         usuarioPrueba.setNombre("Empresa Ejemplo SpA");
         usuarioPrueba.setEmail("contacto@empresa.cl");
         usuarioPrueba.setRol("PROVEEDOR");
+
+        usuarioResponseEsperada = new UsuarioResponseDTO(
+                usuarioPrueba.getId(),
+                usuarioPrueba.getRunOId(),
+                usuarioPrueba.getNombre(),
+                usuarioPrueba.getEmail(),
+                usuarioPrueba.getRol(),
+                usuarioPrueba.getFechaCreacion()
+        );
     }
 
     @Test
@@ -51,13 +66,14 @@ class UsuarioServiceTest {
         when(usuarioRepository.findByRunOId(anyString())).thenReturn(Optional.empty());
         when(usuarioRepository.findByEmail(anyString())).thenReturn(Optional.empty());
         when(usuarioRepository.save(any(Usuario.class))).thenReturn(usuarioPrueba);
+        when(usuarioMapper.toResponseDTO(usuarioPrueba)).thenReturn(usuarioResponseEsperada);
 
         // WHEN (Cuando)
-        Usuario resultado = usuarioService.registrarUsuario(usuarioPrueba);
+        UsuarioResponseDTO resultado = usuarioService.registrarUsuario(usuarioPrueba);
 
         // THEN (Entonces)
         assertNotNull(resultado);
-        assertEquals("76543210-K", resultado.getRunOId());
+        assertEquals("76543210-K", resultado.runOId());
         verify(usuarioRepository, times(1)).save(usuarioPrueba); // Verificamos que se llamó a guardar
     }
 
@@ -102,14 +118,15 @@ class UsuarioServiceTest {
     void obtenerTodos_Exito() {
         // GIVEN
         when(usuarioRepository.findAll()).thenReturn(List.of(usuarioPrueba));
+        when(usuarioMapper.toResponseDTOList(List.of(usuarioPrueba))).thenReturn(List.of(usuarioResponseEsperada));
 
         // WHEN
-        List<Usuario> resultados = usuarioService.obtenerTodos();
+        List<UsuarioResponseDTO> resultados = usuarioService.obtenerTodos();
 
         // THEN
         assertFalse(resultados.isEmpty());
         assertEquals(1, resultados.size());
-        assertEquals("Empresa Ejemplo SpA", resultados.get(0).getNombre());
+        assertEquals("Empresa Ejemplo SpA", resultados.get(0).nombre());
         verify(usuarioRepository, times(1)).findAll();
     }
 
@@ -118,14 +135,15 @@ class UsuarioServiceTest {
     void obtenerPorId_Exito() {
         // GIVEN
         when(usuarioRepository.findById(1L)).thenReturn(Optional.of(usuarioPrueba));
+        when(usuarioMapper.toResponseDTO(usuarioPrueba)).thenReturn(usuarioResponseEsperada);
 
         // WHEN
-        Usuario resultado = usuarioService.obtenerPorId(1L);
+        UsuarioResponseDTO resultado = usuarioService.obtenerPorId(1L);
 
         // THEN
         assertNotNull(resultado);
-        assertEquals(1L, resultado.getId());
-        assertEquals("contacto@empresa.cl", resultado.getEmail());
+        assertEquals(1L, resultado.id());
+        assertEquals("contacto@empresa.cl", resultado.email());
     }
 
     @Test

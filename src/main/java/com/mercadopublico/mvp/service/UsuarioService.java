@@ -4,8 +4,10 @@ import java.util.List;
 
 import org.springframework.stereotype.Service;
 
+import com.mercadopublico.mvp.dto.UsuarioResponseDTO;
 import com.mercadopublico.mvp.exception.RecursoDuplicadoException;
 import com.mercadopublico.mvp.exception.RecursoNoEncontradoException;
+import com.mercadopublico.mvp.mapper.UsuarioMapper;
 import com.mercadopublico.mvp.model.Usuario;
 import com.mercadopublico.mvp.repository.UsuarioRepository;
 
@@ -13,12 +15,14 @@ import com.mercadopublico.mvp.repository.UsuarioRepository;
 public class UsuarioService {
 
     private final UsuarioRepository usuarioRepository;
+    private final UsuarioMapper usuarioMapper;
 
-    public UsuarioService(UsuarioRepository usuarioRepository) {
+    public UsuarioService(UsuarioRepository usuarioRepository, UsuarioMapper usuarioMapper) {
         this.usuarioRepository = usuarioRepository;
+        this.usuarioMapper = usuarioMapper;
     }
 
-    public Usuario registrarUsuario(Usuario usuario) {
+    public UsuarioResponseDTO registrarUsuario(Usuario usuario) {
         // Regla de negocio: Validar que no exista el RUN/ID
         if (usuarioRepository.findByRunOId(usuario.getRunOId()).isPresent()) {
             throw new RecursoDuplicadoException("El RUN/ID fiscal ya está registrado.");
@@ -27,15 +31,16 @@ public class UsuarioService {
         if (usuarioRepository.findByEmail(usuario.getEmail()).isPresent()) {
             throw new RecursoDuplicadoException("El correo electrónico ya está registrado.");
         }
-        return usuarioRepository.save(usuario);
+        return usuarioMapper.toResponseDTO(usuarioRepository.save(usuario));
     }
 
-    public List<Usuario> obtenerTodos() {
-        return usuarioRepository.findAll();
+    public List<UsuarioResponseDTO> obtenerTodos() {
+        return usuarioMapper.toResponseDTOList(usuarioRepository.findAll());
     }
 
-    public Usuario obtenerPorId(Long id) {
-        return usuarioRepository.findById(id)
+    public UsuarioResponseDTO obtenerPorId(Long id) {
+        Usuario usuario = usuarioRepository.findById(id)
                 .orElseThrow(() -> new RecursoNoEncontradoException("Usuario no encontrado con el ID: " + id));
+        return usuarioMapper.toResponseDTO(usuario);
     }
 }

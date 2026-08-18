@@ -1,7 +1,7 @@
 package com.mercadopublico.mvp.controller;
 
+import com.mercadopublico.mvp.dto.LicitacionResponseDTO;
 import com.mercadopublico.mvp.model.EstadoLicitacion;
-import com.mercadopublico.mvp.model.Licitacion;
 import com.mercadopublico.mvp.service.LicitacionService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -29,15 +29,22 @@ class LicitacionControllerTest {
     @MockBean
     private LicitacionService licitacionService;
 
-    private Licitacion licitacionEjemplo;
+    private LicitacionResponseDTO licitacionEjemplo;
 
     @BeforeEach
     void setUp() {
-        licitacionEjemplo = new Licitacion();
-        licitacionEjemplo.setId(1L);
-        licitacionEjemplo.setCodigoExterno("1234-56-78");
-        licitacionEjemplo.setNombre("Adquisición de Servidores de Prueba");
-        licitacionEjemplo.setEstado(EstadoLicitacion.PUBLICADA);
+        licitacionEjemplo = new LicitacionResponseDTO(
+                1L,
+                "1234-56-78",
+                "Adquisición de Servidores de Prueba",
+                null,
+                null,
+                EstadoLicitacion.PUBLICADA,
+                null,
+                null,
+                null,
+                null,
+                null);
     }
 
     @Test

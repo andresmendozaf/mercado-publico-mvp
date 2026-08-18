@@ -2,6 +2,7 @@ package com.mercadopublico.mvp.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mercadopublico.mvp.dto.PostulacionDTO;
+import com.mercadopublico.mvp.exception.RecursoNoEncontradoException;
 import com.mercadopublico.mvp.model.EstadoPostulacion;
 import com.mercadopublico.mvp.service.PostulacionService;
 import org.junit.jupiter.api.BeforeEach;
@@ -17,6 +18,7 @@ import java.util.List;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
@@ -115,5 +117,34 @@ class PostulacionControllerTest {
         mockMvc.perform(delete("/api/postulaciones/1"))
                 .andDo(print())
                 .andExpect(status().isNoContent());
+    }
+
+    @Test
+    @DisplayName("PATCH /api/postulaciones/{id}/estado - Debe retornar 404 si la postulación no existe")
+    void cambiarEstado_PostulacionInexistente_DebeRetornar404() throws Exception {
+        when(postulacionService.cambiarEstado(99L, EstadoPostulacion.EN_PREPARACION))
+                .thenThrow(new RecursoNoEncontradoException("Postulación no encontrada: 99"));
+
+        mockMvc.perform(patch("/api/postulaciones/99/estado")
+                        .param("nuevoEstado", "EN_PREPARACION"))
+                .andDo(print())
+                .andExpect(status().isNotFound())
+                .andExpect(content().contentType(MediaType.APPLICATION_PROBLEM_JSON))
+                .andExpect(jsonPath("$.title").value("Recurso no encontrado"))
+                .andExpect(jsonPath("$.detail").value("Postulación no encontrada: 99"));
+    }
+
+    @Test
+    @DisplayName("DELETE /api/postulaciones/{id} - Debe retornar 404 si la postulación no existe")
+    void eliminarPostulacion_PostulacionInexistente_DebeRetornar404() throws Exception {
+        doThrow(new RecursoNoEncontradoException("Postulación no encontrada: 99"))
+                .when(postulacionService).eliminarPostulacion(99L);
+
+        mockMvc.perform(delete("/api/postulaciones/99"))
+                .andDo(print())
+                .andExpect(status().isNotFound())
+                .andExpect(content().contentType(MediaType.APPLICATION_PROBLEM_JSON))
+                .andExpect(jsonPath("$.title").value("Recurso no encontrado"))
+                .andExpect(jsonPath("$.detail").value("Postulación no encontrada: 99"));
     }
 }

@@ -1,6 +1,7 @@
 package com.mercadopublico.mvp.service;
 
 import com.mercadopublico.mvp.dto.PostulacionDTO;
+import com.mercadopublico.mvp.exception.RecursoNoEncontradoException;
 import com.mercadopublico.mvp.mapper.PostulacionMapper;
 import com.mercadopublico.mvp.model.EstadoPostulacion;
 import com.mercadopublico.mvp.model.Licitacion;
@@ -23,6 +24,9 @@ import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
@@ -101,21 +105,21 @@ class PostulacionServiceTest {
         }
 
         @Test
-        @DisplayName("Debe lanzar IllegalArgumentException cuando la licitación no existe")
+        @DisplayName("Debe lanzar RecursoNoEncontradoException cuando la licitación no existe")
         void debeLanzarExcepcionSiLicitacionNoExiste() {
             // Arrange
             when(licitacionRepository.findById(1L)).thenReturn(Optional.empty());
 
             // Act & Assert
             assertThatThrownBy(() -> postulacionService.crearPostulacion(postulacionDTOPrueba))
-                    .isInstanceOf(IllegalArgumentException.class)
+                    .isInstanceOf(RecursoNoEncontradoException.class)
                     .hasMessageContaining("Licitación no encontrada: 1");
 
             verify(postulacionRepository, never()).save(any());
         }
 
         @Test
-        @DisplayName("Debe lanzar IllegalArgumentException cuando el usuario proveedor no existe")
+        @DisplayName("Debe lanzar RecursoNoEncontradoException cuando el usuario proveedor no existe")
         void debeLanzarExcepcionSiUsuarioNoExiste() {
             // Arrange
             when(licitacionRepository.findById(1L)).thenReturn(Optional.of(licitacionPrueba));
@@ -123,7 +127,7 @@ class PostulacionServiceTest {
 
             // Act & Assert
             assertThatThrownBy(() -> postulacionService.crearPostulacion(postulacionDTOPrueba))
-                    .isInstanceOf(IllegalArgumentException.class)
+                    .isInstanceOf(RecursoNoEncontradoException.class)
                     .hasMessageContaining("Usuario no encontrado: 1");
 
             verify(postulacionRepository, never()).save(any());
@@ -194,10 +198,68 @@ class PostulacionServiceTest {
 
             // Act & Assert
             assertThatThrownBy(() -> postulacionService.eliminarPostulacion(99L))
-                    .isInstanceOf(IllegalArgumentException.class)
+                    .isInstanceOf(RecursoNoEncontradoException.class)
                     .hasMessageContaining("Postulación no encontrada: 99");
 
             verify(postulacionRepository, never()).deleteById(any());
         }
+    }
+    @Test
+    @DisplayName("Debe obtener lista de postulaciones por proveedor y estado")
+    void obtenerPorProveedorYEstado_Exito() {
+        // ARRANGE: 1. Creamos las instancias que necesitamos para este test
+        Postulacion postulacion = new Postulacion();
+        postulacion.setId(10L);
+        postulacion.setEstado(EstadoPostulacion.POR_ESTUDIAR);
+
+        // Suponiendo que tu PostulacionDTO es un record, lo instanciamos con sus valores
+        // Ajusta los campos según la estructura exacta de tu PostulacionDTO
+        PostulacionDTO postulacionDTO = new PostulacionDTO(
+                10L, 
+                500000.0, 
+                "Licitación de Prueba", 
+                EstadoPostulacion.PERDIDA, 
+                100L,
+                1L
+        );
+
+        // 2. Le decimos al Mock del repositorio qué devolver
+        when(postulacionRepository.findByProveedorIdAndEstado(1L, EstadoPostulacion.PERDIDA))
+                .thenReturn(List.of(postulacion));
+                
+        // 3. Le decimos al Mock del mapper qué devolver cuando reciba la entidad
+        when(postulacionMapper.toDTO(any(Postulacion.class)))
+                .thenReturn(postulacionDTO);
+
+        List<PostulacionDTO> resultado = postulacionService.obtenerPorProveedorYEstado(1L, EstadoPostulacion.PERDIDA);
+
+        assertNotNull(resultado);
+        assertEquals(1, resultado.size());
+        assertEquals(10L, resultado.get(0).id()); // Usa .id() si es un Record, o .getId() si es clase
+        
+        // Verificamos que las dependencias fueron llamadas
+        verify(postulacionRepository, times(1)).findByProveedorIdAndEstado(1L, EstadoPostulacion.PERDIDA);
+        verify(postulacionMapper, times(1)).toDTO(any(Postulacion.class));
+    }
+    
+    @Test
+    @DisplayName("Debe lanzar RecursoNoEncontradoException al intentar cambiar estado de una postulación inexistente")
+    void cambiarEstado_PostulacionNoEncontrada_LanzaExcepcion() {
+        // ARRANGE: Simulamos que el ID buscado NO existe en la base de datos (Optional.empty)
+        Long postulacionIdInexistente = 99L;
+        when(postulacionRepository.findById(postulacionIdInexistente))
+                .thenReturn(Optional.empty());
+
+        // ACT & ASSERT: Verificamos que lance la excepción exacta
+        RecursoNoEncontradoException excepcion = assertThrows(RecursoNoEncontradoException.class, () -> {
+            postulacionService.cambiarEstado(postulacionIdInexistente, EstadoPostulacion.PERDIDA);
+        });
+
+        // ASSERT ADICIONAL: Verificamos que el mensaje de error sea exactamente el esperado
+        assertEquals("Postulación no encontrada: " + postulacionIdInexistente, excepcion.getMessage());
+
+        // Verificamos que NUNCA se haya intentado guardar algo en la BD tras el fallo
+        verify(postulacionRepository, never()).save(any());
+        verify(postulacionMapper, never()).toDTO(any());
     }
 }

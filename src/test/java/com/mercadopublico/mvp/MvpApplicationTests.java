@@ -1,13 +1,19 @@
 package com.mercadopublico.mvp;
 
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
+import org.springframework.boot.builder.SpringApplicationBuilder;
 
-class MvpApplicationTests {
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+
+class MvpApplicationMainTest {
 
     @Test
-    void contextLoads() {
-		Assertions.assertTrue(true, "El entorno de pruebas de CI/CD se ejecuta correctamente");
+    void main() {
+        assertDoesNotThrow(() ->
+                new SpringApplicationBuilder(MvpApplication.class)
+                        .profiles("test")
+                        .run()
+                        .close()
+        );
     }
-
 }

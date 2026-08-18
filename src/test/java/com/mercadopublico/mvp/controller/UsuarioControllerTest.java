@@ -20,8 +20,10 @@ import org.springframework.test.web.servlet.MockMvc;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mercadopublico.mvp.dto.UsuarioDTO;
+import com.mercadopublico.mvp.dto.UsuarioResponseDTO;
 import com.mercadopublico.mvp.exception.RecursoDuplicadoException;
 import com.mercadopublico.mvp.exception.RecursoNoEncontradoException;
+import com.mercadopublico.mvp.mapper.UsuarioMapper;
 import com.mercadopublico.mvp.model.Usuario;
 import com.mercadopublico.mvp.service.UsuarioService;
 
@@ -37,21 +39,29 @@ class UsuarioControllerTest {
     @MockBean
     private UsuarioService usuarioService; // Simulamos el servicio (la lógica de negocio ya se probó en la Parte A)
 
-    private Usuario usuarioRespuesta;
+    @MockBean
+    private UsuarioMapper usuarioMapper; // El controlador ahora delega la conversión DTO->Entidad al mapper
+
+    private UsuarioResponseDTO usuarioRespuesta;
     private UsuarioDTO usuarioPeticion;
+    private Usuario usuarioEntidad;
 
     @BeforeEach
     void setUp() {
         // Objeto que simula lo que el cliente (React) nos envía
         usuarioPeticion = new UsuarioDTO("11222333-4", "Juan Pérez", "juan@correo.cl", "COMPRADOR");
 
-        // Objeto que simula lo que devuelve la base de datos (con ID)
-        usuarioRespuesta = new Usuario();
-        usuarioRespuesta.setId(1L);
-        usuarioRespuesta.setRunOId("11222333-4");
-        usuarioRespuesta.setNombre("Juan Pérez");
-        usuarioRespuesta.setEmail("juan@correo.cl");
-        usuarioRespuesta.setRol("COMPRADOR");
+        // Objeto que simula lo que devuelve el servicio (contrato de salida)
+        usuarioRespuesta = new UsuarioResponseDTO(1L, "11222333-4", "Juan Pérez", "juan@correo.cl", "COMPRADOR", null);
+
+        // Objeto que simula lo que el mapper produce a partir del DTO de entrada
+        usuarioEntidad = new Usuario();
+        usuarioEntidad.setRunOId("11222333-4");
+        usuarioEntidad.setNombre("Juan Pérez");
+        usuarioEntidad.setEmail("juan@correo.cl");
+        usuarioEntidad.setRol("COMPRADOR");
+
+        when(usuarioMapper.toEntity(any(UsuarioDTO.class))).thenReturn(usuarioEntidad);
     }
 
     @Test

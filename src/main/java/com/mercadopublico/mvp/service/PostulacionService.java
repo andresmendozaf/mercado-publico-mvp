@@ -6,6 +6,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.mercadopublico.mvp.dto.PostulacionDTO;
+import com.mercadopublico.mvp.exception.RecursoNoEncontradoException;
 import com.mercadopublico.mvp.mapper.PostulacionMapper;
 import com.mercadopublico.mvp.model.EstadoPostulacion;
 import com.mercadopublico.mvp.model.Licitacion;
@@ -34,10 +35,10 @@ public class PostulacionService {
         log.info("Creando postulación. Lic ID: {}, Proveedor ID: {}", dto.licitacionId(), dto.proveedorId());
 
         Licitacion licitacion = licitacionRepository.findById(dto.licitacionId())
-                .orElseThrow(() -> new IllegalArgumentException("Licitación no encontrada: " + dto.licitacionId()));
+                .orElseThrow(() -> new RecursoNoEncontradoException("Licitación no encontrada: " + dto.licitacionId()));
 
         Usuario proveedor = usuarioRepository.findById(dto.proveedorId())
-                .orElseThrow(() -> new IllegalArgumentException("Usuario no encontrado: " + dto.proveedorId()));
+                .orElseThrow(() -> new RecursoNoEncontradoException("Usuario no encontrado: " + dto.proveedorId()));
 
         Postulacion nuevaPostulacion = postulacionMapper.toEntity(dto, licitacion, proveedor);
         Postulacion guardada = postulacionRepository.save(nuevaPostulacion);
@@ -62,7 +63,7 @@ public class PostulacionService {
     @Transactional
     public PostulacionDTO cambiarEstado(Long postulacionId, EstadoPostulacion nuevoEstado) {
         Postulacion postulacion = postulacionRepository.findById(postulacionId)
-                .orElseThrow(() -> new IllegalArgumentException("Postulación no encontrada: " + postulacionId));
+                .orElseThrow(() -> new RecursoNoEncontradoException("Postulación no encontrada: " + postulacionId));
 
         postulacion.setEstado(nuevoEstado);
         log.info("Postulación ID {} actualizada a estado: {}", postulacionId, nuevoEstado);
@@ -73,7 +74,7 @@ public class PostulacionService {
     @Transactional
     public void eliminarPostulacion(Long id) {
         if (!postulacionRepository.existsById(id)) {
-            throw new IllegalArgumentException("Postulación no encontrada: " + id);
+            throw new RecursoNoEncontradoException("Postulación no encontrada: " + id);
         }
         postulacionRepository.deleteById(id);
     }

@@ -59,6 +59,12 @@
             <scope>runtime</scope>
         </dependency>
 
+        <!-- Flyway: control de versión del esquema (PostgreSQL en runtime) -->
+        <dependency>
+            <groupId>org.flywaydb</groupId>
+            <artifactId>flyway-core</artifactId>
+        </dependency>
+
         <!-- Starter Oficial de Pruebas (Incluye @WebMvcTest, MockMvc, JUnit 5 y Mockito) -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
@@ -83,7 +89,7 @@
                         <exclude>**/dto/**</exclude>
                         <exclude>**/model/**</exclude>
                         <exclude>**/mapper/**</exclude>
-                        <exclude>**/config/**</exclude>
+                        <exclude>**/MvpApplication.class</exclude>
                     </excludes>
                 </configuration>
                 <executions>
