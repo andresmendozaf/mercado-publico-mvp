@@ -1,7 +1,9 @@
 package com.mercadopublico.mvp.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.mercadopublico.mvp.config.CorsConfig;
 import com.mercadopublico.mvp.dto.PostulacionDTO;
+import com.mercadopublico.mvp.exception.RecursoDuplicadoException;
 import com.mercadopublico.mvp.exception.RecursoNoEncontradoException;
 import com.mercadopublico.mvp.model.EstadoPostulacion;
 import com.mercadopublico.mvp.service.PostulacionService;
@@ -11,6 +13,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 
@@ -25,6 +28,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @WebMvcTest(PostulacionController.class)
+@Import(CorsConfig.class)
 class PostulacionControllerTest {
 
     @Autowired
@@ -65,6 +69,22 @@ class PostulacionControllerTest {
                 .andExpect(jsonPath("$.licitacionId").value(10L))
                 .andExpect(jsonPath("$.proveedorId").value(5L))
                 .andExpect(jsonPath("$.estado").value("POR_ESTUDIAR"));
+    }
+
+    @Test
+    @DisplayName("POST /api/postulaciones - Debe retornar 409 si la postulación es duplicada")
+    void crearPostulacion_Duplicada_DebeRetornar409() throws Exception {
+        when(postulacionService.crearPostulacion(any(PostulacionDTO.class)))
+                .thenThrow(new RecursoDuplicadoException("El proveedor ya postuló a esta licitación."));
+
+        mockMvc.perform(post("/api/postulaciones")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(postulacionDTO)))
+                .andDo(print())
+                .andExpect(status().isConflict())
+                .andExpect(content().contentType(MediaType.APPLICATION_PROBLEM_JSON))
+                .andExpect(jsonPath("$.title").value("Recurso duplicado"))
+                .andExpect(jsonPath("$.detail").value("El proveedor ya postuló a esta licitación."));
     }
 
     @Test
@@ -146,5 +166,17 @@ class PostulacionControllerTest {
                 .andExpect(content().contentType(MediaType.APPLICATION_PROBLEM_JSON))
                 .andExpect(jsonPath("$.title").value("Recurso no encontrado"))
                 .andExpect(jsonPath("$.detail").value("Postulación no encontrada: 99"));
+    }
+
+    @Test
+    @DisplayName("OPTIONS /api/postulaciones/usuario/{proveedorId} - Preflight CORS debe usar la config global (sin @CrossOrigin propio)")
+    void preflightCors_DebeUsarConfiguracionGlobalDeCorsConfig() throws Exception {
+        mockMvc.perform(options("/api/postulaciones/usuario/5")
+                        .header("Origin", "http://localhost:5173")
+                        .header("Access-Control-Request-Method", "GET"))
+                .andDo(print())
+                .andExpect(status().isOk())
+                .andExpect(header().string("Access-Control-Allow-Origin", "http://localhost:5173"))
+                .andExpect(header().string("Access-Control-Allow-Credentials", "true"));
     }
 }

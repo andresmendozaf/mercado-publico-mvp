@@ -16,4 +16,7 @@ public interface PostulacionRepository extends JpaRepository<Postulacion, Long> 
 
     // Filtrar postulaciones de un proveedor por columna del Kanban (ej: POR_ESTUDIAR)
     List<Postulacion> findByProveedorIdAndEstado(Long proveedorId, EstadoPostulacion estado);
+
+    // Detectar si ya existe una postulación del proveedor para la licitación
+    boolean existsByProveedorIdAndLicitacionId(Long proveedorId, Long licitacionId);
 }

@@ -8,7 +8,6 @@ import org.springframework.web.bind.annotation.*;
 
 import com.mercadopublico.mvp.dto.UsuarioDTO;
 import com.mercadopublico.mvp.dto.UsuarioResponseDTO;
-import com.mercadopublico.mvp.mapper.UsuarioMapper;
 import com.mercadopublico.mvp.service.UsuarioService;
 
 import jakarta.validation.Valid;
@@ -18,11 +17,9 @@ import jakarta.validation.Valid;
 public class UsuarioController {
 
     private final UsuarioService usuarioService;
-    private final UsuarioMapper usuarioMapper;
 
-    public UsuarioController(UsuarioService usuarioService, UsuarioMapper usuarioMapper) {
+    public UsuarioController(UsuarioService usuarioService) {
         this.usuarioService = usuarioService;
-        this.usuarioMapper = usuarioMapper;
     }
 
     /**
@@ -31,7 +28,7 @@ public class UsuarioController {
      */
     @PostMapping
     public ResponseEntity<UsuarioResponseDTO> registrarUsuario(@Valid @RequestBody UsuarioDTO dto) {
-        UsuarioResponseDTO nuevoUsuario = usuarioService.registrarUsuario(usuarioMapper.toEntity(dto));
+        UsuarioResponseDTO nuevoUsuario = usuarioService.registrarUsuario(dto);
         return new ResponseEntity<>(nuevoUsuario, HttpStatus.CREATED);
     }
 

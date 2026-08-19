@@ -13,7 +13,6 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/postulaciones")
 @RequiredArgsConstructor
-@CrossOrigin(origins = {"http://localhost:5173", "http://localhost:3000"})
 public class PostulacionController {
 
     private final PostulacionService postulacionService;

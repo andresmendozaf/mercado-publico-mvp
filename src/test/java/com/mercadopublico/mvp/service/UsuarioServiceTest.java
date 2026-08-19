@@ -17,6 +17,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import com.mercadopublico.mvp.dto.UsuarioDTO;
 import com.mercadopublico.mvp.dto.UsuarioResponseDTO;
 import com.mercadopublico.mvp.exception.RecursoDuplicadoException;
 import com.mercadopublico.mvp.exception.RecursoNoEncontradoException;
@@ -37,6 +38,7 @@ class UsuarioServiceTest {
     private UsuarioService usuarioService;
 
     private Usuario usuarioPrueba;
+    private UsuarioDTO usuarioDtoPrueba;
     private UsuarioResponseDTO usuarioResponseEsperada;
 
     @BeforeEach
@@ -48,6 +50,8 @@ class UsuarioServiceTest {
         usuarioPrueba.setNombre("Empresa Ejemplo SpA");
         usuarioPrueba.setEmail("contacto@empresa.cl");
         usuarioPrueba.setRol("PROVEEDOR");
+
+        usuarioDtoPrueba = new UsuarioDTO("76543210-K", "Empresa Ejemplo SpA", "contacto@empresa.cl", "PROVEEDOR");
 
         usuarioResponseEsperada = new UsuarioResponseDTO(
                 usuarioPrueba.getId(),
@@ -63,13 +67,14 @@ class UsuarioServiceTest {
     @DisplayName("Debe registrar un usuario exitosamente cuando no hay duplicados")
     void registrarUsuario_Exito() {
         // GIVEN (Dado que)
+        when(usuarioMapper.toEntity(usuarioDtoPrueba)).thenReturn(usuarioPrueba);
         when(usuarioRepository.findByRunOId(anyString())).thenReturn(Optional.empty());
         when(usuarioRepository.findByEmail(anyString())).thenReturn(Optional.empty());
         when(usuarioRepository.save(any(Usuario.class))).thenReturn(usuarioPrueba);
         when(usuarioMapper.toResponseDTO(usuarioPrueba)).thenReturn(usuarioResponseEsperada);
 
         // WHEN (Cuando)
-        UsuarioResponseDTO resultado = usuarioService.registrarUsuario(usuarioPrueba);
+        UsuarioResponseDTO resultado = usuarioService.registrarUsuario(usuarioDtoPrueba);
 
         // THEN (Entonces)
         assertNotNull(resultado);
@@ -81,13 +86,14 @@ class UsuarioServiceTest {
     @DisplayName("Debe lanzar RecursoDuplicadoException si el RUN ya existe")
     void registrarUsuario_FallaRunDuplicado() {
         // GIVEN
+        when(usuarioMapper.toEntity(usuarioDtoPrueba)).thenReturn(usuarioPrueba);
         when(usuarioRepository.findByRunOId(usuarioPrueba.getRunOId()))
                 .thenReturn(Optional.of(usuarioPrueba));
 
         // WHEN & THEN
         RecursoDuplicadoException excepcion = assertThrows(
-                RecursoDuplicadoException.class, 
-                () -> usuarioService.registrarUsuario(usuarioPrueba)
+                RecursoDuplicadoException.class,
+                () -> usuarioService.registrarUsuario(usuarioDtoPrueba)
         );
 
         assertEquals("El RUN/ID fiscal ya está registrado.", excepcion.getMessage());
@@ -99,14 +105,15 @@ class UsuarioServiceTest {
     @DisplayName("Debe lanzar RecursoDuplicadoException si el Email ya existe")
     void registrarUsuario_FallaEmailDuplicado() {
         // GIVEN
+        when(usuarioMapper.toEntity(usuarioDtoPrueba)).thenReturn(usuarioPrueba);
         when(usuarioRepository.findByRunOId(anyString())).thenReturn(Optional.empty());
         when(usuarioRepository.findByEmail(usuarioPrueba.getEmail()))
                 .thenReturn(Optional.of(usuarioPrueba));
 
         // WHEN & THEN
         RecursoDuplicadoException excepcion = assertThrows(
-                RecursoDuplicadoException.class, 
-                () -> usuarioService.registrarUsuario(usuarioPrueba)
+                RecursoDuplicadoException.class,
+                () -> usuarioService.registrarUsuario(usuarioDtoPrueba)
         );
 
         assertEquals("El correo electrónico ya está registrado.", excepcion.getMessage());

@@ -6,6 +6,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.mercadopublico.mvp.dto.PostulacionDTO;
+import com.mercadopublico.mvp.exception.RecursoDuplicadoException;
 import com.mercadopublico.mvp.exception.RecursoNoEncontradoException;
 import com.mercadopublico.mvp.mapper.PostulacionMapper;
 import com.mercadopublico.mvp.model.EstadoPostulacion;
@@ -39,6 +40,10 @@ public class PostulacionService {
 
         Usuario proveedor = usuarioRepository.findById(dto.proveedorId())
                 .orElseThrow(() -> new RecursoNoEncontradoException("Usuario no encontrado: " + dto.proveedorId()));
+
+        if (postulacionRepository.existsByProveedorIdAndLicitacionId(proveedor.getId(), licitacion.getId())) {
+            throw new RecursoDuplicadoException("El proveedor ya postuló a esta licitación.");
+        }
 
         Postulacion nuevaPostulacion = postulacionMapper.toEntity(dto, licitacion, proveedor);
         Postulacion guardada = postulacionRepository.save(nuevaPostulacion);

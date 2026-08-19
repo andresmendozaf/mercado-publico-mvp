@@ -4,6 +4,7 @@ import java.util.List;
 
 import org.springframework.stereotype.Service;
 
+import com.mercadopublico.mvp.dto.UsuarioDTO;
 import com.mercadopublico.mvp.dto.UsuarioResponseDTO;
 import com.mercadopublico.mvp.exception.RecursoDuplicadoException;
 import com.mercadopublico.mvp.exception.RecursoNoEncontradoException;
@@ -22,7 +23,9 @@ public class UsuarioService {
         this.usuarioMapper = usuarioMapper;
     }
 
-    public UsuarioResponseDTO registrarUsuario(Usuario usuario) {
+    public UsuarioResponseDTO registrarUsuario(UsuarioDTO dto) {
+        Usuario usuario = usuarioMapper.toEntity(dto);
+
         // Regla de negocio: Validar que no exista el RUN/ID
         if (usuarioRepository.findByRunOId(usuario.getRunOId()).isPresent()) {
             throw new RecursoDuplicadoException("El RUN/ID fiscal ya está registrado.");

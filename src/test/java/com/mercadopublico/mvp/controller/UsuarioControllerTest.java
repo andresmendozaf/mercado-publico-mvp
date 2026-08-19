@@ -23,8 +23,6 @@ import com.mercadopublico.mvp.dto.UsuarioDTO;
 import com.mercadopublico.mvp.dto.UsuarioResponseDTO;
 import com.mercadopublico.mvp.exception.RecursoDuplicadoException;
 import com.mercadopublico.mvp.exception.RecursoNoEncontradoException;
-import com.mercadopublico.mvp.mapper.UsuarioMapper;
-import com.mercadopublico.mvp.model.Usuario;
 import com.mercadopublico.mvp.service.UsuarioService;
 
 @WebMvcTest(UsuarioController.class) // Levanta solo el contexto web de este controlador
@@ -39,12 +37,8 @@ class UsuarioControllerTest {
     @MockBean
     private UsuarioService usuarioService; // Simulamos el servicio (la lógica de negocio ya se probó en la Parte A)
 
-    @MockBean
-    private UsuarioMapper usuarioMapper; // El controlador ahora delega la conversión DTO->Entidad al mapper
-
     private UsuarioResponseDTO usuarioRespuesta;
     private UsuarioDTO usuarioPeticion;
-    private Usuario usuarioEntidad;
 
     @BeforeEach
     void setUp() {
@@ -53,22 +47,13 @@ class UsuarioControllerTest {
 
         // Objeto que simula lo que devuelve el servicio (contrato de salida)
         usuarioRespuesta = new UsuarioResponseDTO(1L, "11222333-4", "Juan Pérez", "juan@correo.cl", "COMPRADOR", null);
-
-        // Objeto que simula lo que el mapper produce a partir del DTO de entrada
-        usuarioEntidad = new Usuario();
-        usuarioEntidad.setRunOId("11222333-4");
-        usuarioEntidad.setNombre("Juan Pérez");
-        usuarioEntidad.setEmail("juan@correo.cl");
-        usuarioEntidad.setRol("COMPRADOR");
-
-        when(usuarioMapper.toEntity(any(UsuarioDTO.class))).thenReturn(usuarioEntidad);
     }
 
     @Test
     @DisplayName("POST /api/usuarios - Debe retornar 201 Created al guardar usuario")
     void registrarUsuario_Exito() throws Exception {
         // Simulamos la respuesta del servicio
-        when(usuarioService.registrarUsuario(any(Usuario.class))).thenReturn(usuarioRespuesta);
+        when(usuarioService.registrarUsuario(any(UsuarioDTO.class))).thenReturn(usuarioRespuesta);
 
         // Realizamos la petición HTTP simulada
         mockMvc.perform(post("/api/usuarios")
@@ -98,7 +83,7 @@ class UsuarioControllerTest {
     @DisplayName("POST /api/usuarios - Debe retornar 409 Conflict si hay datos duplicados")
     void registrarUsuario_FallaDuplicado() throws Exception {
         // Simulamos que el servicio lanza la excepción
-        when(usuarioService.registrarUsuario(any(Usuario.class)))
+        when(usuarioService.registrarUsuario(any(UsuarioDTO.class)))
                 .thenThrow(new RecursoDuplicadoException("El correo ya existe"));
 
         mockMvc.perform(post("/api/usuarios")

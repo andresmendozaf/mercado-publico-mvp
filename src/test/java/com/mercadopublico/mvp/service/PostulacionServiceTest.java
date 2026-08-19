@@ -1,6 +1,7 @@
 package com.mercadopublico.mvp.service;
 
 import com.mercadopublico.mvp.dto.PostulacionDTO;
+import com.mercadopublico.mvp.exception.RecursoDuplicadoException;
 import com.mercadopublico.mvp.exception.RecursoNoEncontradoException;
 import com.mercadopublico.mvp.mapper.PostulacionMapper;
 import com.mercadopublico.mvp.model.EstadoPostulacion;
@@ -131,6 +132,23 @@ class PostulacionServiceTest {
                     .hasMessageContaining("Usuario no encontrado: 1");
 
             verify(postulacionRepository, never()).save(any());
+        }
+
+        @Test
+        @DisplayName("Debe lanzar RecursoDuplicadoException cuando ya existe una postulación del proveedor para la licitación")
+        void debeLanzarExcepcionSiPostulacionEsDuplicada() {
+            // Arrange
+            when(licitacionRepository.findById(1L)).thenReturn(Optional.of(licitacionPrueba));
+            when(usuarioRepository.findById(1L)).thenReturn(Optional.of(proveedorPrueba));
+            when(postulacionRepository.existsByProveedorIdAndLicitacionId(1L, 1L)).thenReturn(true);
+
+            // Act & Assert
+            assertThatThrownBy(() -> postulacionService.crearPostulacion(postulacionDTOPrueba))
+                    .isInstanceOf(RecursoDuplicadoException.class)
+                    .hasMessageContaining("ya postuló");
+
+            verify(postulacionRepository, never()).save(any());
+            verify(postulacionMapper, never()).toEntity(any(), any(), any());
         }
     }
 
