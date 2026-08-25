@@ -28,10 +28,10 @@ public class Postulacion {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false)
+    @Column
     private Double montoPostulacion;
 
-    @Column(columnDefinition = "TEXT", nullable = false)
+    @Column(columnDefinition = "TEXT")
     private String propuestaTecnica;
 
     @Enumerated(EnumType.STRING)

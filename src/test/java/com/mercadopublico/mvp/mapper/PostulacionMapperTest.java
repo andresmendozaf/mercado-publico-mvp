@@ -1,6 +1,7 @@
 package com.mercadopublico.mvp.mapper;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 
 import org.junit.jupiter.api.BeforeEach;
@@ -33,13 +34,13 @@ class PostulacionMapperTest {
     }
 
     @Test
-    @DisplayName("toEntity con estado explícito debe mapear campos y relaciones")
-    void toEntity_conEstadoExplicito_mapeaCamposYRelaciones() {
+    @DisplayName("toEntity con estado explícito en el DTO debe ignorarlo y forzar POR_ESTUDIAR")
+    void toEntity_conEstadoExplicito_fuerzaPorEstudiar() {
         PostulacionDTO dto = new PostulacionDTO(
                 null,
                 1500000.0,
                 "Propuesta de Desarrollo",
-                EstadoPostulacion.POSTULADA,
+                EstadoPostulacion.GANADA,
                 1L,
                 1L
         );
@@ -48,7 +49,7 @@ class PostulacionMapperTest {
 
         assertEquals(dto.montoPostulacion(), resultado.getMontoPostulacion());
         assertEquals(dto.propuestaTecnica(), resultado.getPropuestaTecnica());
-        assertEquals(EstadoPostulacion.POSTULADA, resultado.getEstado());
+        assertEquals(EstadoPostulacion.POR_ESTUDIAR, resultado.getEstado());
         assertSame(licitacion, resultado.getLicitacion());
         assertSame(proveedor, resultado.getProveedor());
     }
@@ -68,6 +69,27 @@ class PostulacionMapperTest {
         Postulacion resultado = postulacionMapper.toEntity(dto, licitacion, proveedor);
 
         assertEquals(EstadoPostulacion.POR_ESTUDIAR, resultado.getEstado());
+    }
+
+    @Test
+    @DisplayName("toEntity con DTO mínimo (sin monto, propuesta ni estado) debe mapear nulls y POR_ESTUDIAR")
+    void toEntity_conDtoMinimo_mapeaCamposNulosYPorEstudiar() {
+        PostulacionDTO dto = new PostulacionDTO(
+                null,
+                null,
+                null,
+                null,
+                1L,
+                1L
+        );
+
+        Postulacion resultado = postulacionMapper.toEntity(dto, licitacion, proveedor);
+
+        assertNull(resultado.getMontoPostulacion());
+        assertNull(resultado.getPropuestaTecnica());
+        assertEquals(EstadoPostulacion.POR_ESTUDIAR, resultado.getEstado());
+        assertSame(licitacion, resultado.getLicitacion());
+        assertSame(proveedor, resultado.getProveedor());
     }
 
     @Test

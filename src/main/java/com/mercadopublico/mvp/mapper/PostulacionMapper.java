@@ -12,13 +12,15 @@ import com.mercadopublico.mvp.model.Usuario;
 public class PostulacionMapper {
 
     /**
-     * Convierte de DTO + Relaciones a Entidad JPA
+     * Convierte de DTO + Relaciones a Entidad JPA.
+     * El estado inicial de toda postulación creada por esta vía es siempre
+     * POR_ESTUDIAR: cualquier estado enviado por el cliente en la creación se ignora.
      */
     public Postulacion toEntity(PostulacionDTO dto, Licitacion licitacion, Usuario proveedor) {
         Postulacion postulacion = new Postulacion();
         postulacion.setMontoPostulacion(dto.montoPostulacion());
         postulacion.setPropuestaTecnica(dto.propuestaTecnica());
-        postulacion.setEstado(dto.estado() != null ? dto.estado() : EstadoPostulacion.POR_ESTUDIAR);
+        postulacion.setEstado(EstadoPostulacion.POR_ESTUDIAR);
         postulacion.setLicitacion(licitacion);
         postulacion.setProveedor(proveedor);
         return postulacion;

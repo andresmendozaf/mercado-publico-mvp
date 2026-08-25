@@ -1,6 +1,7 @@
 package com.mercadopublico.mvp.repository;
 
 import com.mercadopublico.mvp.model.EstadoLicitacion;
+import com.mercadopublico.mvp.model.EstadoPostulacion;
 import com.mercadopublico.mvp.model.Licitacion;
 import com.mercadopublico.mvp.model.Postulacion;
 import com.mercadopublico.mvp.model.Usuario;
@@ -71,6 +72,24 @@ class PostulacionRepositoryTest {
         assertThat(postulacionRepository.existsByProveedorIdAndLicitacionId(proveedorB.getId(), licitacionB.getId()))
                 .as("combinación sin postulación registrada")
                 .isFalse();
+    }
+
+    @Test
+    void guardarPostulacionSinMontoNiPropuesta_debePersistirConCamposNulosYEstadoPorEstudiar() {
+        Usuario proveedor = nuevoProveedor("44444444-4", "proveedorD@test.cl");
+        Licitacion licitacion = nuevaLicitacion("LIC-D");
+
+        Postulacion postulacion = new Postulacion();
+        postulacion.setProveedor(proveedor);
+        postulacion.setLicitacion(licitacion);
+        // montoPostulacion y propuestaTecnica quedan intencionalmente en null
+
+        Postulacion guardada = postulacionRepository.saveAndFlush(postulacion);
+
+        assertThat(guardada.getId()).isNotNull();
+        assertThat(guardada.getMontoPostulacion()).isNull();
+        assertThat(guardada.getPropuestaTecnica()).isNull();
+        assertThat(guardada.getEstado()).isEqualTo(EstadoPostulacion.POR_ESTUDIAR);
     }
 
     @Test
