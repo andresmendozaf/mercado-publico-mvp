@@ -14,6 +14,8 @@ import org.springframework.test.web.servlet.MockMvc;
 
 import java.util.List;
 
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -48,9 +50,10 @@ class LicitacionControllerTest {
     }
 
     @Test
-    @DisplayName("GET /api/licitaciones - Debe retornar lista de todas las licitaciones con estatus HTTP 200 OK")
-    void obtenerTodas_DebeRetornarLicitaciones() throws Exception {
-        when(licitacionService.obtenerTodas()).thenReturn(List.of(licitacionEjemplo));
+    @DisplayName("GET /api/licitaciones - Sin parámetros debe conservar el comportamiento actual (retorna todas)")
+    void obtenerTodas_SinParametros_DebeRetornarLicitaciones() throws Exception {
+        when(licitacionService.buscarConFiltros(isNull(), isNull(), isNull()))
+                .thenReturn(List.of(licitacionEjemplo));
 
         mockMvc.perform(get("/api/licitaciones")
                 .contentType(MediaType.APPLICATION_JSON))
@@ -58,6 +61,42 @@ class LicitacionControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[0].codigoExterno").value("1234-56-78"))
                 .andExpect(jsonPath("$[0].nombre").value("Adquisición de Servidores de Prueba"));
+    }
+
+    @Test
+    @DisplayName("GET /api/licitaciones?texto=... - Debe delegar el filtro de texto al service")
+    void obtenerTodas_ConFiltroTexto_DebeRetornarLicitacionesFiltradas() throws Exception {
+        when(licitacionService.buscarConFiltros(eq("Servidores"), isNull(), isNull()))
+                .thenReturn(List.of(licitacionEjemplo));
+
+        mockMvc.perform(get("/api/licitaciones").param("texto", "Servidores")
+                .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].nombre").value("Adquisición de Servidores de Prueba"));
+    }
+
+    @Test
+    @DisplayName("GET /api/licitaciones?estado=... - Debe delegar el filtro de estado al service")
+    void obtenerTodas_ConFiltroEstado_DebeRetornarLicitacionesFiltradas() throws Exception {
+        when(licitacionService.buscarConFiltros(isNull(), eq(EstadoLicitacion.PUBLICADA), isNull()))
+                .thenReturn(List.of(licitacionEjemplo));
+
+        mockMvc.perform(get("/api/licitaciones").param("estado", "PUBLICADA")
+                .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].estado").value("PUBLICADA"));
+    }
+
+    @Test
+    @DisplayName("GET /api/licitaciones?organismo=... - Debe delegar el filtro de organismo al service")
+    void obtenerTodas_ConFiltroOrganismo_DebeRetornarLicitacionesFiltradas() throws Exception {
+        when(licitacionService.buscarConFiltros(isNull(), isNull(), eq("Defensa")))
+                .thenReturn(List.of(licitacionEjemplo));
+
+        mockMvc.perform(get("/api/licitaciones").param("organismo", "Defensa")
+                .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].codigoExterno").value("1234-56-78"));
     }
 
     @Test

@@ -14,6 +14,7 @@ import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -29,6 +30,7 @@ import com.mercadopublico.mvp.model.LicitacionSincronizacionLog;
 import com.mercadopublico.mvp.model.TipoOperacionSync;
 import com.mercadopublico.mvp.repository.LicitacionRepository;
 import com.mercadopublico.mvp.repository.LicitacionSincronizacionLogRepository;
+import com.mercadopublico.mvp.repository.LicitacionSpecifications;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -51,6 +53,15 @@ public class LicitacionService {
 
     public List<LicitacionResponseDTO> obtenerTodas() {
         return licitacionMapper.toResponseDTOList(licitacionRepository.findAll());
+    }
+
+    public List<LicitacionResponseDTO> buscarConFiltros(String texto, EstadoLicitacion estado, String organismo) {
+        Specification<Licitacion> specification = Specification
+                .where(LicitacionSpecifications.conTexto(texto))
+                .and(LicitacionSpecifications.conEstado(estado))
+                .and(LicitacionSpecifications.conOrganismo(organismo));
+
+        return licitacionMapper.toResponseDTOList(licitacionRepository.findAll(specification));
     }
 
     // ---------------- SINCRONIZACIÓN IDEMPOTENTE ----------------

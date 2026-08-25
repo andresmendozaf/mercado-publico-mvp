@@ -5,6 +5,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import com.mercadopublico.mvp.dto.LicitacionResponseDTO;
+import com.mercadopublico.mvp.model.EstadoLicitacion;
 import com.mercadopublico.mvp.service.LicitacionService;
 
 @RestController
@@ -23,8 +24,11 @@ public class LicitacionController {
     }
 
     @GetMapping
-    public ResponseEntity<List<LicitacionResponseDTO>> obtenerTodas() {
-        return ResponseEntity.ok(licitacionService.obtenerTodas());
+    public ResponseEntity<List<LicitacionResponseDTO>> obtenerTodas(
+            @RequestParam(required = false) String texto,
+            @RequestParam(required = false) EstadoLicitacion estado,
+            @RequestParam(required = false) String organismo) {
+        return ResponseEntity.ok(licitacionService.buscarConFiltros(texto, estado, organismo));
     }
 
     @GetMapping("/abiertas")
