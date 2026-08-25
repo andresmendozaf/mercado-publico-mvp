@@ -1,6 +1,7 @@
 package com.mercadopublico.mvp.controller;
 
 import com.mercadopublico.mvp.dto.LicitacionResponseDTO;
+import com.mercadopublico.mvp.exception.RecursoNoEncontradoException;
 import com.mercadopublico.mvp.model.EstadoLicitacion;
 import com.mercadopublico.mvp.service.LicitacionService;
 import org.junit.jupiter.api.BeforeEach;
@@ -108,6 +109,33 @@ class LicitacionControllerTest {
                 .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[0].estado").value("PUBLICADA"));
+    }
+
+    @Test
+    @DisplayName("GET /api/licitaciones/{id} - Debe retornar el detalle con estatus HTTP 200 OK")
+    void obtenerPorId_Existente_DebeRetornarDetalle() throws Exception {
+        when(licitacionService.obtenerPorId(1L)).thenReturn(licitacionEjemplo);
+
+        mockMvc.perform(get("/api/licitaciones/1")
+                .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(1))
+                .andExpect(jsonPath("$.codigoExterno").value("1234-56-78"));
+    }
+
+    @Test
+    @DisplayName("GET /api/licitaciones/{id} - Debe retornar 404 si la licitación no existe")
+    void obtenerPorId_Inexistente_DebeRetornar404() throws Exception {
+        when(licitacionService.obtenerPorId(99L))
+                .thenThrow(new RecursoNoEncontradoException("Licitación no encontrada: 99"));
+
+        mockMvc.perform(get("/api/licitaciones/99")
+                .contentType(MediaType.APPLICATION_JSON))
+                .andDo(print())
+                .andExpect(status().isNotFound())
+                .andExpect(content().contentType(MediaType.APPLICATION_PROBLEM_JSON))
+                .andExpect(jsonPath("$.title").value("Recurso no encontrado"))
+                .andExpect(jsonPath("$.detail").value("Licitación no encontrada: 99"));
     }
 
     @Test

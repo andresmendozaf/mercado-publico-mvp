@@ -21,6 +21,7 @@ import org.springframework.transaction.annotation.Transactional;
 import com.mercadopublico.mvp.client.ChileCompraClient;
 import com.mercadopublico.mvp.dto.LicitacionResponseDTO;
 import com.mercadopublico.mvp.dto.MercadoPublicoLicitacionDTO;
+import com.mercadopublico.mvp.exception.RecursoNoEncontradoException;
 import com.mercadopublico.mvp.mapper.LicitacionMapper;
 import com.mercadopublico.mvp.mapper.LicitacionSyncMapper;
 import com.mercadopublico.mvp.model.EstadoLicitacion;
@@ -53,6 +54,12 @@ public class LicitacionService {
 
     public List<LicitacionResponseDTO> obtenerTodas() {
         return licitacionMapper.toResponseDTOList(licitacionRepository.findAll());
+    }
+
+    public LicitacionResponseDTO obtenerPorId(Long id) {
+        Licitacion licitacion = licitacionRepository.findById(id)
+                .orElseThrow(() -> new RecursoNoEncontradoException("Licitación no encontrada: " + id));
+        return licitacionMapper.toResponseDTO(licitacion);
     }
 
     public List<LicitacionResponseDTO> buscarConFiltros(String texto, EstadoLicitacion estado, String organismo) {

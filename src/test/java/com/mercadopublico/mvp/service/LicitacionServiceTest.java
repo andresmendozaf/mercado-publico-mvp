@@ -3,6 +3,7 @@ package com.mercadopublico.mvp.service;
 import com.mercadopublico.mvp.client.ChileCompraClient;
 import com.mercadopublico.mvp.dto.LicitacionResponseDTO;
 import com.mercadopublico.mvp.dto.MercadoPublicoLicitacionDTO;
+import com.mercadopublico.mvp.exception.RecursoNoEncontradoException;
 import com.mercadopublico.mvp.mapper.LicitacionMapper;
 import com.mercadopublico.mvp.mapper.LicitacionSyncMapper;
 import com.mercadopublico.mvp.model.EstadoLicitacion;
@@ -314,6 +315,29 @@ class LicitacionServiceTest {
                 List<LicitacionResponseDTO> resultado = licitacionService.obtenerTodas();
                 assertEquals(1, resultado.size());
                 verify(licitacionRepository, times(1)).findAll();
+        }
+
+        @Test
+        @DisplayName("Debe obtener el detalle de una licitación existente por ID")
+        void obtenerPorId_Exito() {
+                when(licitacionRepository.findById(1L)).thenReturn(Optional.of(licitacionEjemplo));
+                when(licitacionMapper.toResponseDTO(licitacionEjemplo)).thenReturn(responseEjemplo);
+
+                LicitacionResponseDTO resultado = licitacionService.obtenerPorId(1L);
+
+                assertEquals(responseEjemplo, resultado);
+                verify(licitacionRepository, times(1)).findById(1L);
+        }
+
+        @Test
+        @DisplayName("Debe lanzar RecursoNoEncontradoException si el ID no existe")
+        void obtenerPorId_NoExiste_LanzaExcepcion() {
+                when(licitacionRepository.findById(99L)).thenReturn(Optional.empty());
+
+                assertThrows(RecursoNoEncontradoException.class,
+                                () -> licitacionService.obtenerPorId(99L));
+
+                verify(licitacionRepository, times(1)).findById(99L);
         }
 
         @Test

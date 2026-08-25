@@ -35,4 +35,9 @@ public class LicitacionController {
     public ResponseEntity<List<LicitacionResponseDTO>> obtenerAbiertas() {
         return ResponseEntity.ok(licitacionService.obtenerLicitacionesAbiertas());
     }
+
+    @GetMapping("/{id}")
+    public ResponseEntity<LicitacionResponseDTO> obtenerPorId(@PathVariable Long id) {
+        return ResponseEntity.ok(licitacionService.obtenerPorId(id));
+    }
 }
